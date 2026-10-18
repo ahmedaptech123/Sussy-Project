@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String   @unique
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]
+  addresses    Address[]
+  wishlist     WishlistItem[]
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  name        String
+  description String
+  categoryId  String?
+  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  active      Boolean          @default(true)
+  variants    ProductVariant[]
+  images      ProductImage[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  @@index([categoryId, active])
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku       String   @unique
+  size      String?
+  color     String?
+  price     Decimal  @db.Decimal(10, 2)
+  stock     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([productId])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String
+  position  Int      @default(0)
+  @@index([productId, position])
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName   String
+  line1      String
+  line2      String?
+  city       String
+  region     String?
+  postalCode String
+  country    String
+  createdAt  DateTime @default(now())
+  @@index([userId])
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email          String
+  status         OrderStatus @default(PENDING)
+  currency       String      @default("USD")
+  subtotal       Decimal     @db.Decimal(10, 2)
+  shippingAmount Decimal     @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal     @default(0) @db.Decimal(10, 2)
+  total          Decimal     @db.Decimal(10, 2)
+  providerRef    String?     @unique
+  items          OrderItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String?
+  productName   String
+  sku           String?
+  size          String?
+  color         String?
+  unitPrice     Decimal  @db.Decimal(10, 2)
+  quantity      Int
+  lineTotal     Decimal  @db.Decimal(10, 2)
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  createdAt DateTime @default(now())
+  @@unique([userId, productId])
+}
+
+model Discount {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  percentOff  Int?
+  amountOff   Decimal? @db.Decimal(10, 2)
+  active      Boolean  @default(true)
+  startsAt    DateTime?
+  expiresAt   DateTime?
+  usageLimit  Int?
+  usageCount  Int      @default(0)
+}
+
+model BlogCategory {
+  id    String     @id @default(cuid())
+  name  String
+  slug  String     @unique
+  posts BlogPost[]
+}
+
+model BlogPost {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  title       String
+  excerpt     String
+  body        String
+  coverImage  String?
+  imageAlt    String?
+  published   Boolean      @default(false)
+  publishedAt DateTime?
+  categoryId  String?
+  category    BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  @@index([published, publishedAt])
+}
+
+model NewsletterSubscription {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  consentAt DateTime @default(now())
+  source    String?
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  topic     String
+  message   String
+  status    String   @default("NEW")
+  createdAt DateTime @default(now())
+  @@index([status, createdAt])
+}

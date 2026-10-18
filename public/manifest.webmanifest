@@ -1,0 +1,9 @@
+{
+  "name": "Vaelen",
+  "short_name": "Vaelen",
+  "description": "Discover modern essentials from Vaelen.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F5F0",
+  "theme_color": "#191919"
+}
